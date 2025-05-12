@@ -3,38 +3,472 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Analysis Results</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Real-Time Traffic Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --warning: #f8961e;
+            --danger: #f72585;
+            --dark: #212529;
+            --light: #f8f9fa;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+        }
+        .dashboard-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+            border: none;
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+        }
+        .junction-card {
+            border-left: 4px solid var(--primary);
+        }
+        .image-container {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        .image-container img {
+            transition: transform 0.3s ease;
+            width: 100%;
+        }
+        .image-container:hover img {
+            transform: scale(1.03);
+        }
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+        }
+        .signal-timing {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+        }
+        .signal-box {
+            padding: 0.5rem;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            flex: 1;
+            margin: 0 0.25rem;
+        }
+        .green { background-color: var(--success); }
+        .yellow { background-color: var(--warning); }
+        .red { background-color: var(--danger); }
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 0.5rem;
+        }
+        .status-waiting { background-color: #e9ecef; color: #495057; }
+        .status-processing { background-color: #fff3cd; color: #856404; }
+        .status-completed { background-color: #d4edda; color: #155724; }
+        .congestion-low { color: var(--success); }
+        .congestion-medium { color: var(--warning); }
+        .congestion-high { color: var(--danger); }
+        .upload-section {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .current-signal {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 1rem;
+        }
+        .signal-active {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+    </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <h1 class="text-center">Real-Time Traffic Analysis Results</h1>
-        <div class="mt-4">
-            <h2>Results Summary</h2>
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Junction</th>
-                        <th>Total Vehicles</th>
-                        <th>Congestion %</th>
-                        <th>Green Time (s)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for result in results %}
-                    <tr>
-                        <td>{{ result.junction }}</td>
-                        <td>{{ result.total_vehicles }}</td>
-                        <td>{{ result.timings.congestion_percentage }}%</td>
-                        <td>{{ result.timings.green_time }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="container-fluid py-4">
+        <div class="dashboard-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="fas fa-traffic-light me-2"></i> Real-Time Traffic Analysis</h1>
+                    <p class="mb-0">Sequential junction processing with adaptive signal timing</p>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-light text-dark fs-6">
+                        <i class="fas fa-clock me-1"></i> <span id="current-time"></span>
+                    </span>
+                </div>
+            </div>
         </div>
-        <div class="text-center mt-4">
-            <a href="/" class="btn btn-secondary">Back to Home</a>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="upload-section">
+                    <h3 class="mb-4"><i class="fas fa-upload me-2"></i>Junction Processing</h3>
+                    <div class="row g-4" id="junction-controls">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h4 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Analysis Results</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="results-container">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h4 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>System Status</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="system-status">
+                            <div class="text-center mb-4">
+                                <div class="spinner-border text-primary" role="status" id="system-spinner">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Initializing system...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header bg-white">
+                        <h4 class="mb-0"><i class="fas fa-traffic-light me-2"></i>Current Signal Plan</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="signal-plan-container">
+                            <p class="text-muted">Signal timing will appear after analysis</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Update current time
+            function updateTime() {
+                const now = new Date();
+                $('#current-time').text(now.toLocaleTimeString() + ' ' + now.toLocaleDateString());
+            }
+            setInterval(updateTime, 1000);
+            updateTime();
+
+            // Initialize junction controls
+            function initializeJunctionControls() {
+                let controlsHtml = '';
+                for (let j = 1; j <= 4; j++) {
+                    controlsHtml += `
+                        <div class="col-md-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-crosshairs me-2"></i>Junction ${j}
+                                    </h5>
+                                    <div class="mb-3">
+                                        <input type="file" class="form-control junction-file" 
+                                               id="file-${j}" data-junction="${j}" 
+                                               accept="image/*,video/*" ${j > 1 ? 'disabled' : ''}>
+                                    </div>
+                                    <button class="btn btn-primary w-100 btn-analyze" 
+                                            id="analyze-${j}" data-junction="${j}" 
+                                            ${j > 1 ? 'disabled' : ''}>
+                                        <i class="fas fa-play me-1"></i> Start Analysis
+                                    </button>
+                                    <div class="mt-3">
+                                        <div class="status-badge status-waiting" id="status-${j}">
+                                            <i class="fas fa-clock me-1"></i> ${j === 1 ? 'Ready for upload' : 'Waiting for previous junction'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                $('#junction-controls').html(controlsHtml);
+            }
+
+            // Initialize the system
+            initializeJunctionControls();
+            checkSystemStatus();
+
+            // File input change handler
+            $(document).on('change', '.junction-file', function() {
+                const junctionId = $(this).data('junction');
+                if (this.files.length > 0) {
+                    $(`#analyze-${junctionId}`).prop('disabled', false);
+                    $(`#status-${junctionId}`).html('<i class="fas fa-check-circle me-1"></i> Ready to analyze');
+                }
+            });
+
+            // Analyze button click handler
+            $(document).on('click', '.btn-analyze', function() {
+                const junctionId = $(this).data('junction');
+                const fileInput = $(`#file-${junctionId}`)[0];
+                
+                if (fileInput.files.length === 0) {
+                    alert('Please select a file first');
+                    return;
+                }
+
+                // Disable all controls during processing
+                $('.junction-file, .btn-analyze').prop('disabled', true);
+                $(`#status-${junctionId}`).html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
+                $(`#status-${junctionId}`).removeClass('status-waiting').addClass('status-processing');
+
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                formData.append('junction_id', junctionId);
+
+                $.ajax({
+                    url: '/analyze_junction',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.success) {
+                            $(`#status-${junctionId}`).html('<i class="fas fa-check-circle me-1"></i> Analysis complete');
+                            $(`#status-${junctionId}`).removeClass('status-processing').addClass('status-completed');
+                            
+                            // Update dashboard with results
+                            updateDashboard();
+                            
+                            // Enable next junction if available
+                            if (junctionId < 4) {
+                                $(`#file-${junctionId + 1}`).prop('disabled', false);
+                                $(`#status-${junctionId + 1}`).html('<i class="fas fa-clock me-1"></i> Ready for upload');
+                            }
+                            
+                            // Display signal timing for this junction
+                            displaySignalTiming(junctionId, response.result.signal_timings);
+                        } else {
+                            $(`#status-${junctionId}`).html(`<i class="fas fa-exclamation-circle me-1"></i> Error: ${response.error || 'Unknown error'}`);
+                            $(`#status-${junctionId}`).removeClass('status-processing').addClass('status-waiting');
+                        }
+                        
+                        // Re-enable controls where appropriate
+                        $('.junction-file').each(function() {
+                            const jId = $(this).data('junction');
+                            if (jId <= junctionId + 1 && $(`#status-${jId}`).hasClass('status-waiting')) {
+                                $(this).prop('disabled', false);
+                            }
+                        });
+                    },
+                    error: function(xhr) {
+                        $(`#status-${junctionId}`).html(`<i class="fas fa-exclamation-circle me-1"></i> Error: ${xhr.responseJSON?.error || 'Server error'}`);
+                        $(`#status-${junctionId}`).removeClass('status-processing').addClass('status-waiting');
+                        $('.junction-file, .btn-analyze').prop('disabled', false);
+                    }
+                });
+            });
+
+            // Update dashboard with analysis results
+            function updateDashboard() {
+                $.get('/get_dashboard_data', function(data) {
+                    let resultsHtml = '';
+                    for (let j = 1; j <= 4; j++) {
+                        if (data[j]) {
+                            const junction = data[j];
+                            resultsHtml += `
+                                <div class="col-md-6 mb-4">
+                                    <div class="card junction-card h-100">
+                                        <div class="card-header bg-white">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-crosshairs me-2"></i>Junction ${j}
+                                                <span class="float-end badge bg-${getCongestionColorClass(junction.congestion_level)}">
+                                                    ${junction.congestion_level}
+                                                </span>
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="image-container">
+                                                <img src="/uploads/${junction.processed_image}" class="img-fluid" alt="Junction ${j}">
+                                            </div>
+                                            <div class="mt-3">
+                                                <h6 class="congestion-${junction.congestion_level.toLowerCase()}">
+                                                    <i class="fas fa-car me-1"></i> ${junction.congestion_percentage.toFixed(1)}% Congestion
+                                                </h6>
+                                                <div class="progress mt-2">
+                                                    <div class="progress-bar bg-${getCongestionColorClass(junction.congestion_level)}" 
+                                                         style="width: ${junction.congestion_percentage}%">
+                                                    </div>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-car-side me-1"></i> Total Vehicles: ${junction.total_vehicles}
+                                                    </small>
+                                                </div>
+                                                <div class="vehicle-count mt-2">
+                                                    ${formatVehicleCounts(junction.vehicle_counts)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                    $('#results-container').html(resultsHtml || '<p class="text-muted">No analysis results yet</p>');
+                });
+            }
+
+            // Display signal timing with countdown
+            function displaySignalTiming(junctionId, timings) {
+                let signalHtml = `
+                    <div class="text-center">
+                        <h5>Junction ${junctionId} Signal Timing</h5>
+                        <div class="signal-timing mt-3">
+                            <div class="signal-box green">
+                                <div><i class="fas fa-circle"></i> Green</div>
+                                <h3 class="mb-0" id="green-timer-${junctionId}">${timings.green}</h3>
+                                <small>seconds</small>
+                            </div>
+                            <div class="signal-box yellow">
+                                <div><i class="fas fa-circle"></i> Yellow</div>
+                                <h3 class="mb-0">${timings.yellow}</h3>
+                                <small>seconds</small>
+                            </div>
+                            <div class="signal-box red">
+                                <div><i class="fas fa-circle"></i> Red</div>
+                                <h3 class="mb-0">${timings.red}</h3>
+                                <small>seconds</small>
+                            </div>
+                        </div>
+                        <div class="current-signal mt-3" id="current-signal-${junctionId}">
+                            <span class="badge bg-success signal-active">GREEN LIGHT ACTIVE</span>
+                        </div>
+                    </div>
+                `;
+                
+                $('#signal-plan-container').html(signalHtml);
+                
+                // Start countdown timer
+                let greenTime = timings.green;
+                const greenTimer = setInterval(function() {
+                    $(`#green-timer-${junctionId}`).text(greenTime);
+                    greenTime--;
+                    
+                    if (greenTime < 0) {
+                        clearInterval(greenTimer);
+                        $(`#current-signal-${junctionId}`).html('<span class="badge bg-warning signal-active">YELLOW LIGHT ACTIVE</span>');
+                        
+                        // After yellow time, show red
+                        setTimeout(function() {
+                            $(`#current-signal-${junctionId}`).html('<span class="badge bg-danger">RED LIGHT ACTIVE</span>');
+                        }, timings.yellow * 1000);
+                    }
+                }, 1000);
+            }
+
+            // Check system status periodically
+            function checkSystemStatus() {
+                $.get('/get_junction_status', function(data) {
+                    let statusHtml = '';
+                    let completedCount = 0;
+                    
+                    for (let j = 1; j <= 4; j++) {
+                        if (data[j] && data[j].completed) {
+                            completedCount++;
+                            statusHtml += `
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span><i class="fas fa-check-circle text-success me-2"></i> Junction ${j}</span>
+                                    <small class="text-muted">${new Date(data[j].timestamp).toLocaleTimeString()}</small>
+                                </div>
+                            `;
+                        }
+                    }
+                    
+                    if (completedCount === 4) {
+                        statusHtml = `
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i> All junctions analyzed successfully!
+                            </div>
+                            ${statusHtml}
+                        `;
+                    } else if (completedCount > 0) {
+                        statusHtml = `
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> ${completedCount}/4 junctions completed
+                            </div>
+                            ${statusHtml}
+                        `;
+                    }
+                    
+                    $('#system-status').html(statusHtml || `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i> No junctions analyzed yet
+                        </div>
+                    `);
+                    
+                    $('#system-spinner').addClass('d-none');
+                });
+            }
+            
+            // Helper functions
+            function getCongestionColorClass(level) {
+                switch (level.toLowerCase()) {
+                    case 'low': return 'success';
+                    case 'medium': return 'warning';
+                    case 'high': return 'danger';
+                    default: return 'info';
+                }
+            }
+            
+            function formatVehicleCounts(counts) {
+                let html = '';
+                for (const [vehicle, count] of Object.entries(counts)) {
+                    if (count > 0) {
+                        html += `<span class="badge bg-secondary me-1 mb-1">${vehicle}: ${count}</span>`;
+                    }
+                }
+                return html || '<small class="text-muted">No vehicles detected</small>';
+            }
+            
+            // Periodically check system status
+            setInterval(checkSystemStatus, 5000);
+        });
+    </script>
 </body>
 </html>
