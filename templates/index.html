@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Traffic Signal Analyzer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Base Styles */
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --accent-color: #f39c12;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+            --danger-color: #e74c3c;
+            --success-color: #27ae60;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f7fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header Styles */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            background-color: var(--dark-color);
+            color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        header i {
+            color: var(--accent-color);
+            margin-right: 10px;
+        }
+
+        /* Main Content Styles */
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            background-color: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        .upload-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: var(--border-radius);
+            padding: 40px 20px;
+            text-align: center;
+            transition: var(--transition);
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--primary-color);
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .upload-area i {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .upload-area h3 {
+            margin-bottom: 10px;
+            color: var(--dark-color);
+        }
+
+        .upload-area p {
+            margin-bottom: 15px;
+            color: #777;
+        }
+
+        .file-types {
+            font-size: 0.9rem;
+            color: #999;
+        }
+
+        .preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .image-preview {
+            position: relative;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .image-preview img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-preview .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: rgba(231, 76, 60, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .image-preview .remove-btn:hover {
+            background-color: var(--danger-color);
+        }
+
+        .buttons-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn i {
+            font-size: 1.1rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-primary:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #27ae60;
+        }
+
+        #browse-btn {
+            background-color: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        #browse-btn:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        /* Features Section */
+        .features-section {
+            margin: 40px 0;
+        }
+
+        .features-section h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--dark-color);
+            font-size: 2rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--box-shadow);
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-card i {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .feature-card h3 {
+            margin-bottom: 15px;
+            color: var(--dark-color);
+        }
+
+        .feature-card p {
+            color: #666;
+        }
+
+        /* How It Works Section */
+        .how-it-works {
+            margin: 40px 0;
+        }
+
+        .how-it-works h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--dark-color);
+            font-size: 2rem;
+        }
+
+        .steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: space-between;
+        }
+
+        .step {
+            flex: 1;
+            min-width: 250px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            background-color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        .step-number {
+            background-color: var(--primary-color);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            margin-bottom: 10px;
+            color: var(--dark-color);
+        }
+
+        .step-content p {
+            color: #666;
+        }
+
+        /* Footer Styles */
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            color: #666;
+            border-top: 1px solid #eee;
+        }
+
+        /* Modal for Camera */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            overflow: auto;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            width: 90%;
+            max-width: 800px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: var(--dark-color);
+        }
+
+        .camera-container {
+            margin: 20px 0;
+        }
+
+        #camera-feed {
+            width: 100%;
+            max-height: 400px;
+            background-color: #f0f0f0;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* Responsive Styles */
+        @media screen and (max-width: 768px) {
+            .steps {
+                flex-direction: column;
+            }
+            
+            .step {
+                max-width: 100%;
+            }
+            
+            .buttons-container {
+                flex-direction: column;
+            }
+            
+            .upload-area {
+                padding: 20px;
+            }
+            
+            header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        /* Drag and Drop Styling */
+        .drag-over {
+            border-color: var(--primary-color);
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        /* Animation styles for notifications */
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .notification {
+            background-color: white;
+            color: white;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-width: 300px;
+            max-width: 400px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-traffic-light"></i> AI Traffic Signal Analyzer</h1>
+            <p>Upload traffic images from different junctions to optimize signal timing</p>
+        </header>
+
+        <main>
+            <div class="upload-section">
+                <form action="/upload" method="post" enctype="multipart/form-data" id="upload-form">
+                    <div class="upload-container" id="upload-container">
+                        <div class="upload-area">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h3>Upload Traffic Images</h3>
+                            <p>Drag and drop up to 4 images or click to browse</p>
+                            <p class="file-types">Supported formats: JPG, JPEG, PNG</p>
+                            <input type="file" name="files" id="file-input" multiple accept=".jpg,.jpeg,.png" style="display: none;">
+                            <button type="button" id="browse-btn" class="btn">Browse Files</button>
+                        </div>
+                        
+                        <div class="preview-container" id="preview-container">
+                            <!-- Image previews will be added here -->
+                        </div>
+                    </div>
+                    
+                    <div class="buttons-container">
+                        <button type="submit" id="submit-btn" class="btn btn-primary" disabled>
+                            <i class="fas fa-cogs"></i> Analyze Traffic
+                        </button>
+                        <button type="button" id="camera-btn" class="btn btn-secondary">
+                            <i class="fas fa-video"></i> Start Live Camera Mode
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="features-section">
+                <h2>Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <i class="fas fa-car"></i>
+                        <h3>Vehicle Detection</h3>
+                        <p>Accurately detect multiple vehicle types including cars, buses, trucks, rickshaws, and more</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <h3>Traffic Density Analysis</h3>
+                        <p>Measure traffic density and congestion levels at different junctions</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-clock"></i>
+                        <h3>Signal Timing Optimization</h3>
+                        <p>Dynamically adjust signal timings based on real-time traffic conditions</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-chart-bar"></i>
+                        <h3>Performance Comparison</h3>
+                        <p>Compare AI-optimized signal timings with conventional manual systems</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="how-it-works">
+                <h2>How It Works</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Upload Traffic Images</h3>
+                            <p>Upload up to 4 images from different traffic junctions</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>AI Analysis</h3>
+                            <p>Our YOLO-based model detects and classifies vehicles</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Traffic Signal Optimization</h3>
+                            <p>The system calculates optimal signal timings based on traffic density</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h3>View Results</h3>
+                            <p>Compare efficiency metrics and visualize traffic patterns</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 AI Traffic Signal Analyzer | Powered by YOLO Object Detection</p>
+        </footer>
+
+        <!-- Camera Modal -->
+        <div id="camera-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Live Camera Mode</h2>
+                <div class="camera-container">
+                    <video id="camera-feed" autoplay playsinline></video>
+                    <div class="camera-controls">
+                        <button id="capture-btn" class="btn btn-primary">
+                            <i class="fas fa-camera"></i> Capture
+                        </button>
+                        <button id="switch-camera-btn" class="btn">
+                            <i class="fas fa-sync"></i> Switch Camera
+                        </button>
+                    </div>
+                </div>
+                <div id="captures-container" class="preview-container">
+                    <!-- Captured images will appear here -->
+                </div>
+                <button id="analyze-captures-btn" class="btn btn-primary" disabled>
+                    Analyze Captured Images
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const uploadForm = document.getElementById('upload-form');
+            const uploadContainer = document.getElementById('upload-container');
+            const fileInput = document.getElementById('file-input');
+            const browseBtn = document.getElementById('browse-btn');
+            const submitBtn = document.getElementById('submit-btn');
+            const previewContainer = document.getElementById('preview-container');
+            const uploadArea = document.querySelector('.upload-area');
+            const cameraBtn = document.getElementById('camera-btn');
+            const cameraModal = document.getElementById('camera-modal');
+            const closeModalBtn = document.querySelector('.close');
+            const cameraFeed = document.getElementById('camera-feed');
+            const captureBtn = document.getElementById('capture-btn');
+            const switchCameraBtn = document.getElementById('switch-camera-btn');
+            const capturesContainer = document.getElementById('captures-container');
+            const analyzeCapturesBtn = document.getElementById('analyze-captures-btn');
+            
+            // Variables
+            let selectedFiles = [];
+            let capturedImages = [];
+            let stream = null;
+            let facingMode = 'environment'; // Start with rear camera
+            
+            // Initialize
+            init();
+            
+            function init() {
+                // Button event listeners
+                browseBtn.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', handleFileSelection);
+                cameraBtn.addEventListener('click', openCameraModal);
+                closeModalBtn.addEventListener('click', closeCameraModal);
+                captureBtn.addEventListener('click', captureImage);
+                switchCameraBtn.addEventListener('click', switchCamera);
+                analyzeCapturesBtn.addEventListener('click', analyzeCaptures);
+                
+                // Drag and drop events
+                setupDragAndDrop();
+            }
+            
+            // File handling functions
+            function handleFileSelection() {
+                const files = fileInput.files;
+                if (files.length === 0) return;
+                
+                processFiles(files);
+            }
+            
+            function processFiles(files) {
+                // Limit to 4 files total
+                const remainingSlots = 4 - selectedFiles.length;
+                const filesToProcess = Array.from(files).slice(0, remainingSlots);
+                
+                if (filesToProcess.length === 0) {
+                    showNotification('Maximum 4 images allowed', 'warning');
+                    return;
+                }
+                
+                filesToProcess.forEach(file => {
+                    // Check file type
+                    if (!file.type.match('image/(jpeg|jpg|png)')) {
+                        showNotification('Only JPG, JPEG and PNG files are supported', 'error');
+                        return;
+                    }
+                    
+                    // Check file size (max 5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        showNotification('Image size should be less than 5MB', 'error');
+                        return;
+                    }
+                    
+                    // Add to selected files
+                    selectedFiles.push(file);
+                    
+                    // Create preview
+                    createImagePreview(file);
+                });
+                
+                // Update submit button state
+                updateSubmitButtonState();
+            }
+            
+            function createImagePreview(file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const preview = document.createElement('div');
+                    preview.className = 'image-preview';
+                    preview.innerHTML = `
+                        <img src="${e.target.result}" alt="${file.name}">
+                        <button class="remove-btn" data-filename="${file.name}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    
+                    previewContainer.appendChild(preview);
+                    
+                    // Add event listener to remove button
+                    const removeBtn = preview.querySelector('.remove-btn');
+                    removeBtn.addEventListener('click', function() {
+                        removeFile(file.name, preview);
+                    });
+                };
+                
+                reader.readAsDataURL(file);
+            }
+            
+            function removeFile(filename, previewElement) {
+                // Remove from selectedFiles array
+                selectedFiles = selectedFiles.filter(file => file.name !== filename);
+                
+                // Remove preview element
+                previewElement.remove();
+                
+                // Update submit button state
+                updateSubmitButtonState();
+            }
+            
+            function updateSubmitButtonState() {
+                submitBtn.disabled = selectedFiles.length === 0;
+            }
+            
+            // Drag and drop handling
+            function setupDragAndDrop() {
+                // Prevent default drag behaviors
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, preventDefaults, false);
+                    document.body.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                // Highlight drop area when item is dragged over it
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, unhighlight, false);
+                });
+                
+                // Handle dropped files
+                uploadArea.addEventListener('drop', handleDrop, false);
+            }
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            function highlight() {
+                uploadArea.classList.add('dragover');
+            }
+            
+            function unhighlight() {
+                uploadArea.classList.remove('dragover');
+            }
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                processFiles(files);
+            }
+            
+            // Camera functions
+            function openCameraModal() {
+                cameraModal.style.display = 'block';
+                startCamera();
+            }
+            
+            function closeCameraModal() {
+                cameraModal.style.display = 'none';
+                stopCamera();
+            }
+            
+            async function startCamera() {
+                try {
+                    const constraints = {
+                        video: {
+                            facingMode: facingMode
+                        },
+                        audio: false
+                    };
+                    
+                    stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    cameraFeed.srcObject = stream;
+                } catch (err) {
+                    console.error('Error accessing camera:', err);
+                    showNotification('Could not access camera. Please check permissions.', 'error');
+                }
+            }
+            
+            function stopCamera() {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                }
+            }
+            
+            function captureImage() {
+                if (!stream) return;
+                
+                // Create a canvas element to capture the current video frame
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                
+                // Set canvas dimensions to match video
+                canvas.width = cameraFeed.videoWidth;
+                canvas.height = cameraFeed.videoHeight;
+                
+                // Draw the current video frame to the canvas
+                context.drawImage(cameraFeed, 0, 0, canvas.width, canvas.height);
+                
+                // Convert to data URL
+                const imageDataUrl = canvas.toDataURL('image/jpeg');
+                
+                // Create file from data URL
+                fetch(imageDataUrl)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        const filename = `capture_${Date.now()}.jpg`;
+                        const file = new File([blob], filename, { type: 'image/jpeg' });
+                        
+                        // Add to captured images
+                        capturedImages.push(file);
+                        
+                        // Create preview
+                        const preview = document.createElement('div');
+                        preview.className = 'image-preview';
+                        preview.innerHTML = `
+                            <img src="${imageDataUrl}" alt="${filename}">
+                            <button class="remove-btn" data-filename="${filename}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        `;
+                        
+                        capturesContainer.appendChild(preview);
+                        
+                        // Add event listener to remove button
+                        const removeBtn = preview.querySelector('.remove-btn');
+                        removeBtn.addEventListener('click', function() {
+                            // Remove from capturedImages array
+                            capturedImages = capturedImages.filter(img => img.name !== filename);
+                            preview.remove();
+                            
+                            // Update analyze button state
+                            analyzeCapturesBtn.disabled = capturedImages.length === 0;
+                        });
+                        
+                        // Update button state
+                        analyzeCapturesBtn.disabled = capturedImages.length === 0;
+                        
+                        // Show notification
+                        showNotification('Image captured successfully!', 'success');
+                    });
+            }
+            
+            async function switchCamera() {
+                // Toggle facing mode
+                facingMode = facingMode === 'environment' ? 'user' : 'environment';
+                
+                // Stop current camera stream
+                stopCamera();
+                
+                // Restart with new facing mode
+                await startCamera();
+            }
+            
+            function analyzeCaptures() {
+                // Create a FormData object
+                const formData = new FormData();
+                
+                // Add captured images to form data
+                capturedImages.forEach(file => {
+                    formData.append('files', file);
+                });
+                
+                // Submit form data
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.text())
+                .then(html => {
+                    // Display the result HTML
+                    document.open();
+                    document.write(html);
+                    document.close();
+                })
+                .catch(error => {
+                    console.error('Error submitting captures:', error);
+                    showNotification('Error analyzing images. Please try again.', 'error');
+                });
+            }
+            
+            // Utility functions
+            function showNotification(message, type = 'info') {
+                // Check if a notification container exists
+                let notifContainer = document.querySelector('.notification-container');
+                
+                // Create it if it doesn't exist
+                if (!notifContainer) {
+                    notifContainer = document.createElement('div');
+                    notifContainer.className = 'notification-container';
+                    document.body.appendChild(notifContainer);
+                }
+                
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `notification notification-${type}`;
+                notification.innerHTML = `
+                    <div class="notification-content">
+                        <i class="notification-icon fas ${getIconForType(type)}"></i>
+                        <p>${message}</p>
+                    </div>
+                    <button class="notification-close">×</button>
+                `;
+                
+                // Style the notification
+                notification.style.backgroundColor = getColorForType(type);
+                
+                // Add the notification to the container
+                notifContainer.appendChild(notification);
+                
+                // Add close button functionality
+                const closeBtn = notification.querySelector('.notification-close');
+                closeBtn.addEventListener('click', () => {
+                    notification.style.animation = 'slideOut 0.3s ease forwards';
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                });
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.style.animation = 'slideOut 0.3s ease forwards';
+                        setTimeout(() => {
+                            notification.remove();
+                        }, 300);
+                    }
+                }, 5000);
+            }
+            
+            function getIconForType(type) {
+                switch (type) {
+                    case 'success': return 'fa-check-circle';
+                    case 'warning': return 'fa-exclamation-triangle';
+                    case 'error': return 'fa-times-circle';
+                    default: return 'fa-info-circle';
+                }
+            }
+            
+            function getColorForType(type) {
+                switch (type) {
+                    case 'success': return '#2ecc71';
+                    case 'warning': return '#f39c12';
+                    case 'error': return '#e74c3c';
+                    default: return '#3498db';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

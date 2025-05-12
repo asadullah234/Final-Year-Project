@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Analysis Results with Prediction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 20px;
+            background-color: #f8f9fa;
+        }
+        .result-container {
+            margin-bottom: 30px;
+        }
+        .chart-container {
+            background-color: white;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .metrics-card {
+            background-color: white;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .junction-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #343a40;
+        }
+        .comparison-img {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+        .nav-tabs {
+            margin-bottom: 20px;
+        }
+        .tab-content {
+            padding: 15px;
+        }
+        .prediction-metrics {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        .prediction-metric {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px;
+            margin: 5px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .alert-info {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+        .junction-image {
+            max-height: 300px;
+            width: auto;
+            margin: 0 auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Traffic Analysis Results</h1>
+        <div class="mb-4">
+            <a href="/" class="btn btn-primary">Back to Home</a>
+            <a href="/dashboard?intersection_id={{ intersection.id }}" class="btn btn-info ms-2">View Dashboard</a>
+        </div>
+
+        <div class="alert alert-info mb-4">
+            <strong>Intersection:</strong> {{ intersection.name }} ({{ intersection.location }})
+        </div>
+
+        <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="current-tab" data-bs-toggle="tab" data-bs-target="#current" type="button" role="tab" aria-controls="current" aria-selected="true">Current Analysis</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="historical-tab" data-bs-toggle="tab" data-bs-target="#historical" type="button" role="tab" aria-controls="historical" aria-selected="false">Historical Trends</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="predictions-tab" data-bs-toggle="tab" data-bs-target="#predictions" type="button" role="tab" aria-controls="predictions" aria-selected="false">Future Predictions</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="comparison-tab" data-bs-toggle="tab" data-bs-target="#comparison" type="button" role="tab" aria-controls="comparison" aria-selected="false">Intersection Comparison</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="resultTabsContent">
+            <!-- Current Analysis Tab -->
+            <div class="tab-pane fade show active" id="current" role="tabpanel" aria-labelledby="current-tab">
+                {% if has_vehicles %}
+                <div class="chart-container">
+                    <h3 class="text-center">Current Traffic Analysis</h3>
+                    <img src="data:image/png;base64,{{ line_chart }}" class="img-fluid comparison-img" alt="Traffic Analysis Chart">
+                </div>
+                
+                <div class="metrics-card">
+                    <h3 class="text-center mb-3">Traffic Efficiency Metrics</h3>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Vehicles</h5>
+                                    <p class="card-text display-6">{{ traffic_efficiency.total_vehicles }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Avg Vehicles/Junction</h5>
+                                    <p class="card-text display-6">{{ traffic_efficiency.avg_vehicles_per_junction }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Avg Green Time</h5>
+                                    <p class="card-text display-6">{{ traffic_efficiency.avg_green_time }} sec</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Avg Wait Time</h5>
+                                    <p class="card-text display-6">{{ traffic_efficiency.avg_wait_time }} sec</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="metrics-card">
+                    <h3 class="text-center mb-3">Vehicle Distribution</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <img src="data:image/png;base64,{{ vehicle_distribution_chart }}" class="img-fluid" alt="Vehicle Distribution">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <img src="data:image/png;base64,{{ direction_distribution_chart }}" class="img-fluid" alt="Direction Distribution">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <p>No vehicle data available for the selected time period.</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Historical Trends Tab -->
+            <div class="tab-pane fade" id="historical" role="tabpanel" aria-labelledby="historical-tab">
+                <div class="chart-container">
+                    <h3 class="text-center">Traffic Volume - Past 30 Days</h3>
+                    <img src="data:image/png;base64,{{ historical_chart }}" class="img-fluid comparison-img" alt="Historical Traffic Chart">
+                </div>
+                
+                <div class="metrics-card">
+                    <h3 class="text-center mb-3">Historical Metrics</h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Peak Traffic Hour</h5>
+                                    <p class="card-text display-6">{{ historical_metrics.peak_hour }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Daily Average</h5>
+                                    <p class="card-text display-6">{{ historical_metrics.daily_avg }} vehicles</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Busiest Day</h5>
+                                    <p class="card-text display-6">{{ historical_metrics.busiest_day }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="metrics-card">
+                    <h3 class="text-center mb-3">Weekly Distribution</h3>
+                    <div class="chart-container">
+                        <img src="data:image/png;base64,{{ weekly_distribution_chart }}" class="img-fluid" alt="Weekly Distribution">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Future Predictions Tab -->
+            <div class="tab-pane fade" id="predictions" role="tabpanel" aria-labelledby="predictions-tab">
+                <div class="chart-container">
+                    <h3 class="text-center">Traffic Volume Prediction - Next 7 Days</h3>
+                    <img src="data:image/png;base64,{{ prediction_chart }}" class="img-fluid comparison-img" alt="Traffic Prediction Chart">
+                </div>
+                
+                <div class="metrics-card">
+                    <h3 class="text-center mb-3">Prediction Metrics</h3>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Expected Peak Traffic</h5>
+                                    <p class="card-text display-6">{{ prediction_metrics.peak_traffic }}</p>
+                                    <p class="text-muted">{{ prediction_metrics.peak_time }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Predicted Congestion</h5>
+                                    <p class="card-text display-6">{{ prediction_metrics.congestion_level }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Confidence Score</h5>
+                                    <p class="card-text display-6">{{ prediction_metrics.confidence }}%</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Traffic Trend</h5>
+                                    <p class="card-text display-6">{{ prediction_metrics.trend }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="metrics-card">
+                    <h3 class="text-center mb-3">Optimization Recommendations</h3>
+                    <div class="alert alert-info">
+                        <h5>Recommended Signal Timing Adjustments</h5>
+                        <ul>
+                            {% for recommendation in optimization_recommendations %}
+                            <li>{{ recommendation }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    Current vs Optimized Wait Times
+                                </div>
+                                <div class="card-body">
+                                    <img src="data:image/png;base64,{{ optimization_chart }}" class="img-fluid" alt="Optimization Comparison">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    Expected Improvement
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-6 text-center">
+                                            <h5>Wait Time Reduction</h5>
+                                            <p class="display-6">{{ optimization_metrics.wait_time_reduction }}%</p>
+                                        </div>
+                                        <div class="col-6 text-center">
+                                            <h5>Throughput Increase</h5>
+                                            <p class="display-6">{{ optimization_metrics.throughput_increase }}%</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Intersection Comparison Tab -->
+            <div class="tab-pane fade" id="comparison" role="tabpanel" aria-labelledby="comparison-tab">
+                <div class="chart-container">
+                    <h3 class="text-center">Performance Comparison with Nearby Intersections</h3>
+                    <img src="data:image/png;base64,{{ comparison_chart }}" class="img-fluid comparison-img" alt="Intersection Comparison Chart">
+                </div>
+                
+                <div class="metrics-card">
+                    <h3 class="text-center mb-3">Comparison Metrics</h3>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Intersection</th>
+                                    <th>Total Volume</th>
+                                    <th>Avg Wait Time</th>
+                                    <th>Efficiency Score</th>
+                                    <th>Congestion Level</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for comp in comparison_data %}
+                                <tr {% if comp.is_current %}class="table-primary"{% endif %}>
+                                    <td>{{ comp.name }}</td>
+                                    <td>{{ comp.total_volume }}</td>
+                                    <td>{{ comp.avg_wait_time }} sec</td>
+                                    <td>{{ comp.efficiency_score }}</td>
+                                    <td>{{ comp.congestion_level }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="metrics-card">
+                    <h3 class="text-center mb-3">Geographic Distribution</h3>
+                    <div class="row">
+                        <div class="col-md-8 offset-md-2">
+                            <div class="chart-container">
+                                <img src="data:image/png;base64,{{ geo_distribution_chart }}" class="img-fluid" alt="Geographic Distribution">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  
+    <footer class="mt-5 py-3 text-center text-muted">
+        <div class="container">
+            <p>© 2025 Traffic Management System | Last Updated: {{ last_updated }}</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+            
+            // Tab management
+            var triggerTabList = [].slice.call(document.querySelectorAll('#resultTabs button'))
+            triggerTabList.forEach(function (triggerEl) {
+                var tabTrigger = new bootstrap.Tab(triggerEl)
+                triggerEl.addEventListener('click', function (event) {
+                    event.preventDefault()
+                    tabTrigger.show()
+                })
+            });
+        });
+    </script>
+</body>
+</html>
