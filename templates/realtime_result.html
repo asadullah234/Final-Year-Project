@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Analysis Results</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Real-Time Traffic Analysis Results</h1>
+        <div class="mt-4">
+            <h2>Results Summary</h2>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Junction</th>
+                        <th>Total Vehicles</th>
+                        <th>Congestion %</th>
+                        <th>Green Time (s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr>
+                        <td>{{ result.junction }}</td>
+                        <td>{{ result.total_vehicles }}</td>
+                        <td>{{ result.timings.congestion_percentage }}%</td>
+                        <td>{{ result.timings.green_time }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-center mt-4">
+            <a href="/" class="btn btn-secondary">Back to Home</a>
+        </div>
+    </div>
+</body>
+</html>
