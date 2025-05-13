@@ -8,6 +8,7 @@ import time
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from sqlalchemy import inspect, text
+import json
 
 app = Flask(__name__, static_url_path='/static')
 
@@ -16,7 +17,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:asad@localhost:54
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'mp4'}
+app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
+app.config['SIGNAL_STATE_FILE'] = 'signal_states.json'
 
 db = SQLAlchemy(app)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -60,6 +62,28 @@ def ensure_columns_exist():
                 except Exception as e:
                     db.session.rollback()
                     print(f"Error adding column {col_name}: {e}")
+
+def get_signal_states():
+    if not os.path.exists(app.config['SIGNAL_STATE_FILE']):
+        initial_state = {
+            'active_junction': None,
+            'signal_states': {
+                1: {'state': 'red', 'remaining': 0, 'last_update': None},
+                2: {'state': 'red', 'remaining': 0, 'last_update': None},
+                3: {'state': 'red', 'remaining': 0, 'last_update': None},
+                4: {'state': 'red', 'remaining': 0, 'last_update': None}
+            }
+        }
+        with open(app.config['SIGNAL_STATE_FILE'], 'w') as f:
+            json.dump(initial_state, f)
+        return initial_state
+    
+    with open(app.config['SIGNAL_STATE_FILE'], 'r') as f:
+        return json.load(f)
+
+def update_signal_states(new_states):
+    with open(app.config['SIGNAL_STATE_FILE'], 'w') as f:
+        json.dump(new_states, f)
 
 def analyze_image(image_path, junction_id):
     img = cv2.imread(image_path)
@@ -122,13 +146,26 @@ def analyze_image(image_path, junction_id):
 def index():
     return render_template('index.html')
 
+@app.route('/realtime')
+def realtime():
+    return render_template('realtime_result.html')
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-@app.route('/realtime')
-def realtime():
-    return render_template('realtime_result.html')
+@app.route('/get_signal_states')
+def get_current_signal_states():
+    signal_states = get_signal_states()
+    # Update remaining times based on last_update
+    current_time = time.time()
+    for junction, state in signal_states['signal_states'].items():
+        if state['last_update']:
+            elapsed = current_time - state['last_update']
+            state['remaining'] = max(0, state['remaining'] - elapsed)
+            state['last_update'] = current_time
+    update_signal_states(signal_states)
+    return jsonify(signal_states)
 
 @app.route('/analyze_junction', methods=['POST'])
 def analyze_junction():
@@ -145,6 +182,17 @@ def analyze_junction():
         return jsonify({"error": "Invalid file type"}), 400
     
     try:
+        # Check if we can process this junction now
+        signal_states = get_signal_states()
+        current_time = time.time()
+        
+        if signal_states['active_junction'] is not None and signal_states['active_junction'] != junction_id:
+            active_state = signal_states['signal_states'][str(signal_states['active_junction'])]
+            if active_state['remaining'] > 0:
+                return jsonify({
+                    "error": f"Junction {signal_states['active_junction']} is currently active. Please wait {active_state['remaining']:.0f} seconds."
+                }), 400
+        
         filename = secure_filename(f"junction_{junction_id}_{int(time.time())}.jpg")
         original_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(original_path)
@@ -153,6 +201,15 @@ def analyze_junction():
         if "error" in result:
             os.remove(original_path)
             return jsonify({"error": result["error"]}), 400
+        
+        # Update signal states
+        signal_states['active_junction'] = junction_id
+        signal_states['signal_states'][str(junction_id)] = {
+            'state': 'green',
+            'remaining': result['signal_timings']['green'],
+            'last_update': current_time
+        }
+        update_signal_states(signal_states)
         
         # Save to database
         data = TrafficData(
@@ -209,16 +266,30 @@ def get_dashboard_data():
     
     return jsonify(junctions_data)
 
-@app.route('/get_junction_status')
-def get_junction_status():
-    status = {}
+@app.route('/get_historical_data')
+def get_historical_data():
+    # Get data for the last 24 hours by default
+    hours = int(request.args.get('hours', 24))
+    time_threshold = datetime.utcnow() - timedelta(hours=hours)
+    
+    # Query data for all junctions
+    historical_data = {1: [], 2: [], 3: [], 4: []}
+    
     for junction_id in range(1, 5):
-        latest = TrafficData.query.filter_by(junction_id=junction_id).order_by(TrafficData.created_at.desc()).first()
-        status[junction_id] = {
-            "completed": latest.analysis_completed if latest else False,
-            "timestamp": latest.created_at.isoformat() if latest else None
-        }
-    return jsonify(status)
+        records = TrafficData.query.filter(
+            TrafficData.junction_id == junction_id,
+            TrafficData.created_at >= time_threshold,
+            TrafficData.analysis_completed == True
+        ).order_by(TrafficData.created_at).all()
+        
+        for record in records:
+            historical_data[junction_id].append({
+                "timestamp": record.created_at.isoformat(),
+                "congestion_percentage": record.congestion_percentage,
+                "total_vehicles": record.total_vehicles
+            })
+    
+    return jsonify(historical_data)
 
 if __name__ == '__main__':
     with app.app_context():

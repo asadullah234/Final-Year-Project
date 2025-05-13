@@ -3,180 +3,549 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Traffic Analysis</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Real-time Traffic Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --primary: #4361ee;
-            --secondary: #3f37c9;
-            --success: #4cc9f0;
-            --warning: #f8961e;
-            --danger: #f72585;
-            --dark: #212529;
-            --light: #f8f9fa;
+            --bg-color: #f8f9fa;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+            --sidebar-bg: #343a40;
+            --sidebar-text: #dee2e6;
+            --sidebar-active: #007bff;
         }
+
+        [data-theme="dark"] {
+            --bg-color: #212529;
+            --text-color: #f8f9fa;
+            --card-bg: #343a40;
+            --sidebar-bg: #212529;
+            --sidebar-text: #adb5bd;
+            --sidebar-active: #0d6efd;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding-top: 20px;
+            transition: all 0.3s ease;
         }
-        .dashboard-header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 250px;
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            padding-top: 20px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-collapsed {
+            width: 80px;
+        }
+
+        .sidebar-collapsed .sidebar-text {
+            display: none;
+        }
+
+        .sidebar .nav-link {
+            color: var(--sidebar-text);
+            padding: 10px 15px;
+            margin: 5px 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar .nav-link.active {
+            background-color: var(--sidebar-active);
             color: white;
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .card {
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            margin-bottom: 1.5rem;
+
+        .sidebar .nav-link i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .sidebar-toggle {
+            position: fixed;
+            left: 10px;
+            top: 10px;
+            z-index: 1100;
+            background: var(--sidebar-active);
+            color: white;
             border: none;
-            transition: transform 0.3s ease;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
         }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+
+        .main-content {
+            margin-left: 250px;
+            transition: all 0.3s ease;
         }
-        .junction-card {
-            border-left: 4px solid var(--primary);
+
+        .main-content-collapsed {
+            margin-left: 80px;
         }
+
+        .theme-toggle {
+            position: fixed;
+            right: 70px;
+            top: 10px;
+            z-index: 1000;
+        }
+
+        .settings-toggle {
+            position: fixed;
+            right: 20px;
+            top: 10px;
+            z-index: 1000;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: none;
+        }
+
         .image-container {
-            position: relative;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
         }
-        .image-container img {
-            transition: transform 0.3s ease;
+
+        .image-pair {
+            display: flex;
             width: 100%;
         }
-        .image-container:hover img {
-            transform: scale(1.03);
+
+        .image-box {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
         }
-        .progress {
-            height: 10px;
-            border-radius: 5px;
+
+        .image-box img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
+
+        .signal-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .signal-red {
+            background-color: #dc3545;
+        }
+
+        .signal-yellow {
+            background-color: #ffc107;
+        }
+
+        .signal-green {
+            background-color: #28a745;
+        }
+
+        .countdown {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #dc3545;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            background-color: var(--card-bg);
+            border-left: 4px solid #0d6efd;
+        }
+
+        .signal-timing-card {
+            background-color: var(--card-bg);
+            border-left: 4px solid #28a745;
+        }
+
         .signal-timing {
             display: flex;
             justify-content: space-between;
-            margin-top: 1rem;
+            align-items: center;
+            margin: 10px 0;
         }
-        .signal-box {
-            padding: 0.5rem;
+
+        .signal-timing-label {
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .signal-timing-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .progress {
+            height: 10px;
+            margin-top: 5px;
+        }
+
+        .progress-bar-green {
+            background-color: #28a745;
+        }
+
+        .progress-bar-yellow {
+            background-color: #ffc107;
+        }
+
+        .progress-bar-red {
+            background-color: #dc3545;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+        }
+
+        .settings-menu {
+            position: fixed;
+            right: 20px;
+            top: 50px;
+            background-color: var(--card-bg);
             border-radius: 5px;
-            color: white;
-            font-weight: bold;
-            text-align: center;
-            flex: 1;
-            margin: 0 0.25rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 10px;
+            z-index: 1000;
+            display: none;
         }
-        .green { background-color: var(--success); }
-        .yellow { background-color: var(--warning); }
-        .red { background-color: var(--danger); }
-        .status-badge {
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: 600;
-            display: inline-block;
-            margin-top: 0.5rem;
-        }
-        .status-waiting { background-color: #e9ecef; color: #495057; }
-        .status-processing { background-color: #fff3cd; color: #856404; }
-        .status-completed { background-color: #d4edda; color: #155724; }
-        .congestion-low { color: var(--success); }
-        .congestion-medium { color: var(--warning); }
-        .congestion-high { color: var(--danger); }
-        .upload-section {
-            background: white;
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-        .current-signal {
-            font-size: 1.5rem;
-            font-weight: bold;
-            text-align: center;
-            margin-top: 1rem;
-        }
-        .signal-active {
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.6; }
-            100% { opacity: 1; }
+
+        .settings-menu.show {
+            display: block;
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid py-4">
-        <div class="dashboard-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1><i class="fas fa-traffic-light me-2"></i> Real-Time Traffic Analysis</h1>
-                    <p class="mb-0">Sequential junction processing with adaptive signal timing</p>
-                </div>
-                <div class="text-end">
-                    <span class="badge bg-light text-dark fs-6">
-                        <i class="fas fa-clock me-1"></i> <span id="current-time"></span>
-                    </span>
-                </div>
-            </div>
-        </div>
+    <!-- Sidebar Toggle Button -->
+    <button class="sidebar-toggle" id="sidebarToggle">
+        <i class="bi bi-list"></i>
+    </button>
 
-        <div class="row">
-            <div class="col-md-12">
-                <div class="upload-section">
-                    <h3 class="mb-4"><i class="fas fa-upload me-2"></i>Junction Processing</h3>
-                    <div class="row g-4" id="junction-controls">
-                        <!-- Will be populated by JavaScript -->
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle btn btn-primary" id="themeToggle">
+        <i class="bi bi-moon-fill"></i>
+    </button>
+
+    <!-- Settings Toggle Button -->
+    <button class="settings-toggle btn btn-secondary" id="settingsToggle">
+        <i class="bi bi-gear-fill"></i>
+    </button>
+
+    <!-- Settings Menu -->
+    <div class="settings-menu" id="settingsMenu">
+        <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="realTimeUpdateSwitch" checked>
+            <label class="form-check-label" for="realTimeUpdateSwitch">Real-time Updates</label>
+        </div>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="soundAlertSwitch">
+            <label class="form-check-label" for="soundAlertSwitch">Sound Alerts</label>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="text-center mb-4">
+            <i class="bi bi-traffic-light" style="font-size: 2rem;"></i>
+            <span class="sidebar-text ms-2" style="font-size: 1.2rem; font-weight: bold;">Traffic Control</span>
+        </div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="#">
+                    <i class="bi bi-speedometer2"></i>
+                    <span class="sidebar-text">Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-camera-video"></i>
+                    <span class="sidebar-text">Live Cameras</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-graph-up"></i>
+                    <span class="sidebar-text">Analytics</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-clock-history"></i>
+                    <span class="sidebar-text">History</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-gear"></i>
+                    <span class="sidebar-text">Settings</span>
+                </a>
+            </li>
+            <li class="nav-item mt-4">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-box-arrow-left"></i>
+                    <span class="sidebar-text">Logout</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <div class="container">
+            <div class="header">
+                <h1>Real-time Traffic Analysis Dashboard</h1>
+                <div class="d-flex">
+                    <div class="me-3">
+                        <small>Last Updated:</small>
+                        <div id="lastUpdated">Just now</div>
+                    </div>
+                    <div>
+                        <small>Active Junction:</small>
+                        <div id="activeJunctionDisplay">None</div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="row">
-            <div class="col-lg-8">
-                <div class="card">
-                    <div class="card-header bg-white">
-                        <h4 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Analysis Results</h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="row" id="results-container">
-                            <!-- Results will be populated here -->
+            
+            <div class="row">
+                <!-- Signal Timing Card -->
+                <div class="col-md-12">
+                    <div class="card signal-timing-card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-stopwatch"></i> Current Signal Timings
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="card">
-                    <div class="card-header bg-white">
-                        <h4 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>System Status</h4>
-                    </div>
-                    <div class="card-body">
-                        <div id="system-status">
-                            <div class="text-center mb-4">
-                                <div class="spinner-border text-primary" role="status" id="system-spinner">
-                                    <span class="visually-hidden">Loading...</span>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="signal-timing">
+                                        <div class="signal-timing-label">
+                                            <span class="signal-indicator signal-green me-2"></span>
+                                            Green Signal
+                                        </div>
+                                        <div class="signal-timing-value" id="green-timing">0s</div>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar progress-bar-green" id="green-progress" role="progressbar" style="width: 0%"></div>
+                                    </div>
                                 </div>
-                                <p class="mt-2">Initializing system...</p>
+                                <div class="col-md-4">
+                                    <div class="signal-timing">
+                                        <div class="signal-timing-label">
+                                            <span class="signal-indicator signal-yellow me-2"></span>
+                                            Yellow Signal
+                                        </div>
+                                        <div class="signal-timing-value" id="yellow-timing">3s</div>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar progress-bar-yellow" id="yellow-progress" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="signal-timing">
+                                        <div class="signal-timing-label">
+                                            <span class="signal-indicator signal-red me-2"></span>
+                                            Red Signal
+                                        </div>
+                                        <div class="signal-timing-value" id="red-timing">0s</div>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar progress-bar-red" id="red-progress" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="card mt-4">
-                    <div class="card-header bg-white">
-                        <h4 class="mb-0"><i class="fas fa-traffic-light me-2"></i>Current Signal Plan</h4>
+            <div class="row">
+                <!-- Junction Cards -->
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-geo-alt"></i> Junction 1
+                        </div>
+                        <div class="card-body">
+                            <div id="junction1-status" class="mb-3">
+                                <span class="signal-indicator signal-red"></span>
+                                <span>Status: <span id="junction1-state">Red</span></span>
+                                <div class="countdown mt-2" id="junction1-countdown">0</div>
+                            </div>
+                            <form id="junction1-form" class="junction-form" data-junction="1">
+                                <div class="mb-3">
+                                    <input type="file" class="form-control" id="junction1-file" accept="image/*" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100" id="junction1-btn">
+                                    <i class="bi bi-play-circle"></i> Analyze
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div id="signal-plan-container">
-                            <p class="text-muted">Signal timing will appear after analysis</p>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-geo-alt"></i> Junction 2
+                        </div>
+                        <div class="card-body">
+                            <div id="junction2-status" class="mb-3">
+                                <span class="signal-indicator signal-red"></span>
+                                <span>Status: <span id="junction2-state">Red</span></span>
+                                <div class="countdown mt-2" id="junction2-countdown">0</div>
+                            </div>
+                            <form id="junction2-form" class="junction-form" data-junction="2">
+                                <div class="mb-3">
+                                    <input type="file" class="form-control" id="junction2-file" accept="image/*" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100" id="junction2-btn">
+                                    <i class="bi bi-play-circle"></i> Analyze
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-geo-alt"></i> Junction 3
+                        </div>
+                        <div class="card-body">
+                            <div id="junction3-status" class="mb-3">
+                                <span class="signal-indicator signal-red"></span>
+                                <span>Status: <span id="junction3-state">Red</span></span>
+                                <div class="countdown mt-2" id="junction3-countdown">0</div>
+                            </div>
+                            <form id="junction3-form" class="junction-form" data-junction="3">
+                                <div class="mb-3">
+                                    <input type="file" class="form-control" id="junction3-file" accept="image/*" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100" id="junction3-btn">
+                                    <i class="bi bi-play-circle"></i> Analyze
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-geo-alt"></i> Junction 4
+                        </div>
+                        <div class="card-body">
+                            <div id="junction4-status" class="mb-3">
+                                <span class="signal-indicator signal-red"></span>
+                                <span>Status: <span id="junction4-state">Red</span></span>
+                                <div class="countdown mt-2" id="junction4-countdown">0</div>
+                            </div>
+                            <form id="junction4-form" class="junction-form" data-junction="4">
+                                <div class="mb-3">
+                                    <input type="file" class="form-control" id="junction4-file" accept="image/*" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100" id="junction4-btn">
+                                    <i class="bi bi-play-circle"></i> Analyze
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Image Display Section -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-images"></i> Processed Images
+                        </div>
+                        <div class="card-body">
+                            <div id="image-display" class="image-container">
+                                <!-- Images will be displayed here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Section -->
+            <div class="row mt-4">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-graph-up"></i> Congestion Trends (Last 24 Hours)
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-pie-chart"></i> Vehicle Distribution
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="vehicleChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Summary Section -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card summary-card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-card-checklist"></i> Traffic Summary
+                        </div>
+                        <div class="card-body">
+                            <div id="summary-content">
+                                <!-- Summary will be displayed here -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -184,291 +553,426 @@
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        $(document).ready(function() {
-            // Update current time
-            function updateTime() {
-                const now = new Date();
-                $('#current-time').text(now.toLocaleTimeString() + ' ' + now.toLocaleDateString());
-            }
-            setInterval(updateTime, 1000);
-            updateTime();
-
-            // Initialize junction controls
-            function initializeJunctionControls() {
-                let controlsHtml = '';
-                for (let j = 1; j <= 4; j++) {
-                    controlsHtml += `
-                        <div class="col-md-3">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title">
-                                        <i class="fas fa-crosshairs me-2"></i>Junction ${j}
-                                    </h5>
-                                    <div class="mb-3">
-                                        <input type="file" class="form-control junction-file" 
-                                               id="file-${j}" data-junction="${j}" 
-                                               accept="image/*,video/*" ${j > 1 ? 'disabled' : ''}>
-                                    </div>
-                                    <button class="btn btn-primary w-100 btn-analyze" 
-                                            id="analyze-${j}" data-junction="${j}" 
-                                            ${j > 1 ? 'disabled' : ''}>
-                                        <i class="fas fa-play me-1"></i> Start Analysis
-                                    </button>
-                                    <div class="mt-3">
-                                        <div class="status-badge status-waiting" id="status-${j}">
-                                            <i class="fas fa-clock me-1"></i> ${j === 1 ? 'Ready for upload' : 'Waiting for previous junction'}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                $('#junction-controls').html(controlsHtml);
-            }
-
-            // Initialize the system
-            initializeJunctionControls();
-            checkSystemStatus();
-
-            // File input change handler
-            $(document).on('change', '.junction-file', function() {
-                const junctionId = $(this).data('junction');
-                if (this.files.length > 0) {
-                    $(`#analyze-${junctionId}`).prop('disabled', false);
-                    $(`#status-${junctionId}`).html('<i class="fas fa-check-circle me-1"></i> Ready to analyze');
-                }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Global variables
+            let trendChart, vehicleChart;
+            let activeJunction = null;
+            let countdownInterval;
+            let isDarkMode = false;
+            let isSidebarCollapsed = false;
+            let currentSignalTimings = {
+                green: 0,
+                yellow: 3,
+                red: 0
+            };
+            
+            // Initialize UI elements
+            initUI();
+            
+            // Initialize charts
+            initCharts();
+            
+            // Update signal states every second
+            setInterval(updateSignalStates, 1000);
+            
+            // Load initial data
+            loadDashboardData();
+            loadHistoricalData();
+            
+            // Set up form handlers
+            document.querySelectorAll('.junction-form').forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const junctionId = this.getAttribute('data-junction');
+                    const fileInput = document.getElementById(`junction${junctionId}-file`);
+                    
+                    if (fileInput.files.length === 0) {
+                        alert('Please select an image file');
+                        return;
+                    }
+                    
+                    analyzeImage(junctionId, fileInput.files[0]);
+                });
             });
-
-            // Analyze button click handler
-            $(document).on('click', '.btn-analyze', function() {
-                const junctionId = $(this).data('junction');
-                const fileInput = $(`#file-${junctionId}`)[0];
+            
+            // Function to initialize UI elements
+            function initUI() {
+                // Sidebar toggle
+                document.getElementById('sidebarToggle').addEventListener('click', function() {
+                    isSidebarCollapsed = !isSidebarCollapsed;
+                    document.getElementById('sidebar').classList.toggle('sidebar-collapsed', isSidebarCollapsed);
+                    document.getElementById('mainContent').classList.toggle('main-content-collapsed', isSidebarCollapsed);
+                });
                 
-                if (fileInput.files.length === 0) {
-                    alert('Please select a file first');
-                    return;
+                // Theme toggle
+                document.getElementById('themeToggle').addEventListener('click', function() {
+                    isDarkMode = !isDarkMode;
+                    document.body.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+                    this.innerHTML = isDarkMode ? '<i class="bi bi-sun-fill"></i>' : '<i class="bi bi-moon-fill"></i>';
+                    
+                    // Update charts for theme change
+                    updateChartThemes();
+                });
+                
+                // Settings toggle
+                document.getElementById('settingsToggle').addEventListener('click', function() {
+                    document.getElementById('settingsMenu').classList.toggle('show');
+                });
+                
+                // Close settings menu when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!e.target.closest('#settingsToggle') && !e.target.closest('#settingsMenu')) {
+                        document.getElementById('settingsMenu').classList.remove('show');
+                    }
+                });
+            }
+            
+            // Function to update chart themes
+            function updateChartThemes() {
+                const textColor = isDarkMode ? '#f8f9fa' : '#212529';
+                const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                
+                if (trendChart) {
+                    trendChart.options.scales.x.grid.color = gridColor;
+                    trendChart.options.scales.y.grid.color = gridColor;
+                    trendChart.options.scales.x.ticks.color = textColor;
+                    trendChart.options.scales.y.ticks.color = textColor;
+                    trendChart.update();
                 }
-
-                // Disable all controls during processing
-                $('.junction-file, .btn-analyze').prop('disabled', true);
-                $(`#status-${junctionId}`).html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
-                $(`#status-${junctionId}`).removeClass('status-waiting').addClass('status-processing');
-
+                
+                if (vehicleChart) {
+                    vehicleChart.options.plugins.legend.labels.color = textColor;
+                    vehicleChart.update();
+                }
+            }
+            
+            // Function to analyze image
+            function analyzeImage(junctionId, file) {
                 const formData = new FormData();
-                formData.append('file', fileInput.files[0]);
+                formData.append('file', file);
                 formData.append('junction_id', junctionId);
-
-                $.ajax({
-                    url: '/analyze_junction',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        if (response.success) {
-                            $(`#status-${junctionId}`).html('<i class="fas fa-check-circle me-1"></i> Analysis complete');
-                            $(`#status-${junctionId}`).removeClass('status-processing').addClass('status-completed');
-                            
-                            // Update dashboard with results
-                            updateDashboard();
-                            
-                            // Enable next junction if available
-                            if (junctionId < 4) {
-                                $(`#file-${junctionId + 1}`).prop('disabled', false);
-                                $(`#status-${junctionId + 1}`).html('<i class="fas fa-clock me-1"></i> Ready for upload');
-                            }
-                            
-                            // Display signal timing for this junction
-                            displaySignalTiming(junctionId, response.result.signal_timings);
+                
+                fetch('/analyze_junction', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        // Update last updated time
+                        updateLastUpdated();
+                        loadDashboardData();
+                        loadHistoricalData();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while processing the image');
+                });
+            }
+            
+            // Function to update last updated time
+            function updateLastUpdated() {
+                const now = new Date();
+                document.getElementById('lastUpdated').textContent = now.toLocaleTimeString();
+            }
+            
+            // Function to update signal states
+            function updateSignalStates() {
+                fetch('/get_signal_states')
+                .then(response => response.json())
+                .then(data => {
+                    activeJunction = data.active_junction;
+                    document.getElementById('activeJunctionDisplay').textContent = 
+                        activeJunction ? `Junction ${activeJunction}` : 'None';
+                    
+                    // Update each junction's status
+                    for (let i = 1; i <= 4; i++) {
+                        const state = data.signal_states[i];
+                        const stateElement = document.getElementById(`junction${i}-state`);
+                        const countdownElement = document.getElementById(`junction${i}-countdown`);
+                        const indicatorElement = document.querySelector(`#junction${i}-status .signal-indicator`);
+                        
+                        // Update state display
+                        stateElement.textContent = state.state.charAt(0).toUpperCase() + state.state.slice(1);
+                        countdownElement.textContent = Math.round(state.remaining);
+                        
+                        // Update indicator color
+                        indicatorElement.className = 'signal-indicator';
+                        if (state.state === 'red') {
+                            indicatorElement.classList.add('signal-red');
+                            countdownElement.style.color = '#dc3545';
+                        } else if (state.state === 'yellow') {
+                            indicatorElement.classList.add('signal-yellow');
+                            countdownElement.style.color = '#ffc107';
                         } else {
-                            $(`#status-${junctionId}`).html(`<i class="fas fa-exclamation-circle me-1"></i> Error: ${response.error || 'Unknown error'}`);
-                            $(`#status-${junctionId}`).removeClass('status-processing').addClass('status-waiting');
+                            indicatorElement.classList.add('signal-green');
+                            countdownElement.style.color = '#28a745';
                         }
                         
-                        // Re-enable controls where appropriate
-                        $('.junction-file').each(function() {
-                            const jId = $(this).data('junction');
-                            if (jId <= junctionId + 1 && $(`#status-${jId}`).hasClass('status-waiting')) {
-                                $(this).prop('disabled', false);
+                        // Enable/disable forms based on active junction
+                        const form = document.getElementById(`junction${i}-form`);
+                        const btn = document.getElementById(`junction${i}-btn`);
+                        
+                        if (activeJunction !== null && activeJunction != i) {
+                            btn.disabled = true;
+                            form.querySelector('input[type="file"]').disabled = true;
+                        } else {
+                            btn.disabled = false;
+                            form.querySelector('input[type="file"]').disabled = false;
+                        }
+                    }
+                    
+                    // Update signal timing card
+                    if (activeJunction) {
+                        const activeState = data.signal_states[activeJunction];
+                        const timings = activeState.signal_timings || currentSignalTimings;
+                        
+                        // Update timing values
+                        document.getElementById('green-timing').textContent = `${Math.round(activeState.remaining)}s`;
+                        document.getElementById('yellow-timing').textContent = `${timings.yellow}s`;
+                        document.getElementById('red-timing').textContent = `${timings.red}s`;
+                        
+                        // Update progress bars
+                        const greenPercent = (activeState.remaining / timings.green) * 100;
+                        document.getElementById('green-progress').style.width = `${greenPercent}%`;
+                        
+                        // For yellow and red, we'll just show full width as they're not currently counting down
+                        document.getElementById('yellow-progress').style.width = '0%';
+                        document.getElementById('red-progress').style.width = '0%';
+                        
+                        // Store current timings
+                        currentSignalTimings = {
+                            green: timings.green,
+                            yellow: timings.yellow,
+                            red: timings.red
+                        };
+                    } else {
+                        // No active junction - reset timings
+                        document.getElementById('green-timing').textContent = '0s';
+                        document.getElementById('yellow-timing').textContent = '3s';
+                        document.getElementById('red-timing').textContent = '0s';
+                        document.getElementById('green-progress').style.width = '0%';
+                        document.getElementById('yellow-progress').style.width = '0%';
+                        document.getElementById('red-progress').style.width = '0%';
+                    }
+                });
+            }
+            
+            // Function to load dashboard data
+            function loadDashboardData() {
+                fetch('/get_dashboard_data')
+                .then(response => response.json())
+                .then(data => {
+                    const imageDisplay = document.getElementById('image-display');
+                    imageDisplay.innerHTML = '';
+                    
+                    const summaryContent = document.getElementById('summary-content');
+                    summaryContent.innerHTML = '';
+                    
+                    let summaryHTML = '<div class="row">';
+                    
+                    for (let i = 1; i <= 4; i++) {
+                        if (data[i]) {
+                            // Display images
+                            const imagePair = document.createElement('div');
+                            imagePair.className = 'image-pair mb-4';
+                            imagePair.innerHTML = `
+                                <div class="image-box">
+                                    <h5>Junction ${i} - Original</h5>
+                                    <img src="/uploads/${data[i].original_image}" alt="Original Image">
+                                </div>
+                                <div class="image-box">
+                                    <h5>Junction ${i} - Processed</h5>
+                                    <img src="/uploads/${data[i].processed_image}" alt="Processed Image">
+                                </div>
+                            `;
+                            imageDisplay.appendChild(imagePair);
+                            
+                            // Build summary
+                            summaryHTML += `
+                                <div class="col-md-3">
+                                    <h5>Junction ${i}</h5>
+                                    <p><strong>Congestion:</strong> ${data[i].congestion_level} (${data[i].congestion_percentage.toFixed(1)}%)</p>
+                                    <p><strong>Total Vehicles:</strong> ${data[i].total_vehicles}</p>
+                                    <p><strong>Last Updated:</strong> ${new Date(data[i].timestamp).toLocaleTimeString()}</p>
+                                </div>
+                            `;
+                            
+                            // Update vehicle chart if this is the active junction
+                            if (activeJunction == i) {
+                                updateVehicleChart(data[i].vehicle_counts);
                             }
-                        });
+                        }
+                    }
+                    
+                    summaryHTML += '</div>';
+                    summaryContent.innerHTML = summaryHTML;
+                });
+            }
+            
+            // Function to load historical data
+            function loadHistoricalData() {
+                fetch('/get_historical_data?hours=24')
+                .then(response => response.json())
+                .then(data => {
+                    updateTrendChart(data);
+                });
+            }
+            
+            // Function to initialize charts
+            function initCharts() {
+                const trendCtx = document.getElementById('trendChart').getContext('2d');
+                const vehicleCtx = document.getElementById('vehicleChart').getContext('2d');
+                
+                const textColor = isDarkMode ? '#f8f9fa' : '#212529';
+                const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                
+                trendChart = new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            { label: 'Junction 1', data: [], borderColor: '#ff6384', backgroundColor: 'rgba(255, 99, 132, 0.1)' },
+                            { label: 'Junction 2', data: [], borderColor: '#36a2eb', backgroundColor: 'rgba(54, 162, 235, 0.1)' },
+                            { label: 'Junction 3', data: [], borderColor: '#ffce56', backgroundColor: 'rgba(255, 206, 86, 0.1)' },
+                            { label: 'Junction 4', data: [], borderColor: '#4bc0c0', backgroundColor: 'rgba(75, 192, 192, 0.1)' }
+                        ]
                     },
-                    error: function(xhr) {
-                        $(`#status-${junctionId}`).html(`<i class="fas fa-exclamation-circle me-1"></i> Error: ${xhr.responseJSON?.error || 'Server error'}`);
-                        $(`#status-${junctionId}`).removeClass('status-processing').addClass('status-waiting');
-                        $('.junction-file, .btn-analyze').prop('disabled', false);
-                    }
-                });
-            });
-
-            // Update dashboard with analysis results
-            function updateDashboard() {
-                $.get('/get_dashboard_data', function(data) {
-                    let resultsHtml = '';
-                    for (let j = 1; j <= 4; j++) {
-                        if (data[j]) {
-                            const junction = data[j];
-                            resultsHtml += `
-                                <div class="col-md-6 mb-4">
-                                    <div class="card junction-card h-100">
-                                        <div class="card-header bg-white">
-                                            <h5 class="mb-0">
-                                                <i class="fas fa-crosshairs me-2"></i>Junction ${j}
-                                                <span class="float-end badge bg-${getCongestionColorClass(junction.congestion_level)}">
-                                                    ${junction.congestion_level}
-                                                </span>
-                                            </h5>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="image-container">
-                                                <img src="/uploads/${junction.processed_image}" class="img-fluid" alt="Junction ${j}">
-                                            </div>
-                                            <div class="mt-3">
-                                                <h6 class="congestion-${junction.congestion_level.toLowerCase()}">
-                                                    <i class="fas fa-car me-1"></i> ${junction.congestion_percentage.toFixed(1)}% Congestion
-                                                </h6>
-                                                <div class="progress mt-2">
-                                                    <div class="progress-bar bg-${getCongestionColorClass(junction.congestion_level)}" 
-                                                         style="width: ${junction.congestion_percentage}%">
-                                                    </div>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <small class="text-muted">
-                                                        <i class="fas fa-car-side me-1"></i> Total Vehicles: ${junction.total_vehicles}
-                                                    </small>
-                                                </div>
-                                                <div class="vehicle-count mt-2">
-                                                    ${formatVehicleCounts(junction.vehicle_counts)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Congestion Percentage',
+                                    color: textColor
+                                },
+                                grid: {
+                                    color: gridColor
+                                },
+                                ticks: {
+                                    color: textColor
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Time',
+                                    color: textColor
+                                },
+                                grid: {
+                                    color: gridColor
+                                },
+                                ticks: {
+                                    color: textColor
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: textColor
+                                }
+                            }
                         }
                     }
-                    $('#results-container').html(resultsHtml || '<p class="text-muted">No analysis results yet</p>');
                 });
-            }
-
-            // Display signal timing with countdown
-            function displaySignalTiming(junctionId, timings) {
-                let signalHtml = `
-                    <div class="text-center">
-                        <h5>Junction ${junctionId} Signal Timing</h5>
-                        <div class="signal-timing mt-3">
-                            <div class="signal-box green">
-                                <div><i class="fas fa-circle"></i> Green</div>
-                                <h3 class="mb-0" id="green-timer-${junctionId}">${timings.green}</h3>
-                                <small>seconds</small>
-                            </div>
-                            <div class="signal-box yellow">
-                                <div><i class="fas fa-circle"></i> Yellow</div>
-                                <h3 class="mb-0">${timings.yellow}</h3>
-                                <small>seconds</small>
-                            </div>
-                            <div class="signal-box red">
-                                <div><i class="fas fa-circle"></i> Red</div>
-                                <h3 class="mb-0">${timings.red}</h3>
-                                <small>seconds</small>
-                            </div>
-                        </div>
-                        <div class="current-signal mt-3" id="current-signal-${junctionId}">
-                            <span class="badge bg-success signal-active">GREEN LIGHT ACTIVE</span>
-                        </div>
-                    </div>
-                `;
                 
-                $('#signal-plan-container').html(signalHtml);
-                
-                // Start countdown timer
-                let greenTime = timings.green;
-                const greenTimer = setInterval(function() {
-                    $(`#green-timer-${junctionId}`).text(greenTime);
-                    greenTime--;
-                    
-                    if (greenTime < 0) {
-                        clearInterval(greenTimer);
-                        $(`#current-signal-${junctionId}`).html('<span class="badge bg-warning signal-active">YELLOW LIGHT ACTIVE</span>');
-                        
-                        // After yellow time, show red
-                        setTimeout(function() {
-                            $(`#current-signal-${junctionId}`).html('<span class="badge bg-danger">RED LIGHT ACTIVE</span>');
-                        }, timings.yellow * 1000);
-                    }
-                }, 1000);
-            }
-
-            // Check system status periodically
-            function checkSystemStatus() {
-                $.get('/get_junction_status', function(data) {
-                    let statusHtml = '';
-                    let completedCount = 0;
-                    
-                    for (let j = 1; j <= 4; j++) {
-                        if (data[j] && data[j].completed) {
-                            completedCount++;
-                            statusHtml += `
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span><i class="fas fa-check-circle text-success me-2"></i> Junction ${j}</span>
-                                    <small class="text-muted">${new Date(data[j].timestamp).toLocaleTimeString()}</small>
-                                </div>
-                            `;
+                vehicleChart = new Chart(vehicleCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            data: [],
+                            backgroundColor: [
+                                '#ff6384',
+                                '#36a2eb',
+                                '#ffce56',
+                                '#4bc0c0',
+                                '#9966ff',
+                                '#ff9f40',
+                                '#8ac24a'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Vehicle Distribution',
+                                color: textColor
+                            },
+                            legend: {
+                                labels: {
+                                    color: textColor
+                                }
+                            }
                         }
                     }
-                    
-                    if (completedCount === 4) {
-                        statusHtml = `
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle me-2"></i> All junctions analyzed successfully!
-                            </div>
-                            ${statusHtml}
-                        `;
-                    } else if (completedCount > 0) {
-                        statusHtml = `
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i> ${completedCount}/4 junctions completed
-                            </div>
-                            ${statusHtml}
-                        `;
-                    }
-                    
-                    $('#system-status').html(statusHtml || `
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i> No junctions analyzed yet
-                        </div>
-                    `);
-                    
-                    $('#system-spinner').addClass('d-none');
                 });
             }
             
-            // Helper functions
-            function getCongestionColorClass(level) {
-                switch (level.toLowerCase()) {
-                    case 'low': return 'success';
-                    case 'medium': return 'warning';
-                    case 'high': return 'danger';
-                    default: return 'info';
-                }
-            }
-            
-            function formatVehicleCounts(counts) {
-                let html = '';
-                for (const [vehicle, count] of Object.entries(counts)) {
-                    if (count > 0) {
-                        html += `<span class="badge bg-secondary me-1 mb-1">${vehicle}: ${count}</span>`;
+            // Function to update trend chart
+            function updateTrendChart(data) {
+                const labels = {};
+                const datasets = {1: [], 2: [], 3: [], 4: []};
+                
+                // Process data for all junctions
+                for (let junction in data) {
+                    if (data.hasOwnProperty(junction)) {
+                        data[junction].forEach(entry => {
+                            const date = new Date(entry.timestamp);
+                            const timeLabel = `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+                            
+                            if (!labels[timeLabel]) {
+                                labels[timeLabel] = true;
+                            }
+                            
+                            datasets[junction].push({
+                                x: timeLabel,
+                                y: entry.congestion_percentage
+                            });
+                        });
                     }
                 }
-                return html || '<small class="text-muted">No vehicles detected</small>';
+                
+                // Update chart
+                trendChart.data.labels = Object.keys(labels);
+                
+                for (let i = 1; i <= 4; i++) {
+                    trendChart.data.datasets[i-1].data = datasets[i].map(item => item.y);
+                }
+                
+                trendChart.update();
             }
             
-            // Periodically check system status
-            setInterval(checkSystemStatus, 5000);
+            // Function to update vehicle chart
+            function updateVehicleChart(vehicleCounts) {
+                const labels = [];
+                const data = [];
+                
+                for (let vehicle in vehicleCounts) {
+                    if (vehicleCounts.hasOwnProperty(vehicle) && vehicleCounts[vehicle] > 0) {
+                        labels.push(vehicle.charAt(0).toUpperCase() + vehicle.slice(1));
+                        data.push(vehicleCounts[vehicle]);
+                    }
+                }
+                
+                vehicleChart.data.labels = labels;
+                vehicleChart.data.datasets[0].data = data;
+                vehicleChart.update();
+            }
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

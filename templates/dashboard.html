@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        .junction-card {
+            transition: all 0.3s;
+            height: 100%;
+        }
+        .junction-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .signal-box {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .signal-active {
+            box-shadow: 0 0 20px 5px rgba(255,255,255,0.7);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .card-header {
+            font-weight: 600;
+        }
+        .junction-image {
+            height: 180px;
+            object-fit: cover;
+            width: 100%;
+        }
+        .progress-thin {
+            height: 8px;
+        }
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        #imagePreview {
+            max-height: 200px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Traffic Dashboard</h1>
+            <a href="/" class="btn btn-outline-secondary">
+                <i class="fas fa-home"></i> Home
+            </a>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-info-circle me-2"></i>Current Status</h4>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 id="currentJunction">No active junction</h5>
+                        <div id="signalTimer" class="h4">Next signal change in: <span id="remainingTime">0</span>s</div>
+                    </div>
+                    <div class="col-md-6 text-center">
+                        <div class="d-flex justify-content-center gap-3">
+                            <div class="signal-box bg-danger" id="redSignal">R</div>
+                            <div class="signal-box bg-warning" id="yellowSignal">Y</div>
+                            <div class="signal-box bg-success" id="greenSignal">G</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="card junction-card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-crosshairs me-2"></i>Junction 1</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <img id="junction1Preview" src="https://via.placeholder.com/400x300?text=Upload+J1+Image" class="junction-image mb-3 rounded">
+                        <input type="file" id="junction1Upload" accept="image/*" class="d-none">
+                        <button class="btn btn-primary mt-auto" onclick="document.getElementById('junction1Upload').click()">
+                            <i class="fas fa-upload me-2"></i>Upload Image
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card junction-card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-crosshairs me-2"></i>Junction 2</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <img id="junction2Preview" src="https://via.placeholder.com/400x300?text=Waiting+for+J1" class="junction-image mb-3 rounded">
+                        <input type="file" id="junction2Upload" accept="image/*" class="d-none" disabled>
+                        <button class="btn btn-secondary mt-auto" disabled>
+                            <i class="fas fa-clock me-2"></i>Waiting
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card junction-card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-crosshairs me-2"></i>Junction 3</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <img id="junction3Preview" src="https://via.placeholder.com/400x300?text=Waiting+for+J2" class="junction-image mb-3 rounded">
+                        <input type="file" id="junction3Upload" accept="image/*" class="d-none" disabled>
+                        <button class="btn btn-secondary mt-auto" disabled>
+                            <i class="fas fa-clock me-2"></i>Waiting
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card junction-card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-crosshairs me-2"></i>Junction 4</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <img id="junction4Preview" src="https://via.placeholder.com/400x300?text=Waiting+for+J3" class="junction-image mb-3 rounded">
+                        <input type="file" id="junction4Upload" accept="image/*" class="d-none" disabled>
+                        <button class="btn btn-secondary mt-auto" disabled>
+                            <i class="fas fa-clock me-2"></i>Waiting
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-8">
+                <div class="card h-100">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0"><i class="fas fa-chart-line me-2"></i>Congestion Trends</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="congestionTrendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header bg-info text-white">
+                        <h4 class="mb-0"><i class="fas fa-car me-2"></i>Vehicle Distribution</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="vehicleDistributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header bg-warning text-dark">
+                        <h4 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Congestion Levels</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="congestionLevelChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header bg-danger text-white">
+                        <h4 class="mb-0"><i class="fas fa-list-alt me-2"></i>Analysis Results</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="resultsContainer" class="text-center py-4">
+                            <p class="text-muted">Results will appear here after analysis</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentActiveJunction = null;
+        let signalInterval;
+        let analysisHistory = [];
+        let congestionTrendChart, vehicleDistributionChart, congestionLevelChart;
+        const junctionSignalColors = {
+            1: { red: 'bg-danger', yellow: 'bg-warning', green: 'bg-success' },
+            2: { red: 'bg-danger', yellow: 'bg-warning', green: 'bg-success' },
+            3: { red: 'bg-danger', yellow: 'bg-warning', green: 'bg-success' },
+            4: { red: 'bg-danger', yellow: 'bg-warning', green: 'bg-success' },
+        };
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setupFileUpload(1);
+            initializeCharts();
+            setInterval(updateDashboard, 5000); // Update every 5 seconds
+        });
+        
+        function initializeCharts() {
+            // Congestion Trend Chart (Line)
+            const trendCtx = document.getElementById('congestionTrendChart').getContext('2d');
+            congestionTrendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Congestion Percentage',
+                        data: [],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Congestion %'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Vehicle Distribution Chart (Pie)
+            const vehicleCtx = document.getElementById('vehicleDistributionChart').getContext('2d');
+            vehicleDistributionChart = new Chart(vehicleCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Cars', 'Buses', 'Trucks', 'Motorcycles', 'Bikes', 'Rickshaws'],
+                    datasets: [{
+                        data: [0, 0, 0, 0, 0, 0],
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(255, 159, 64, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)',
+                            'rgba(255, 205, 86, 0.7)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Congestion Level Chart (Pie)
+            const congestionCtx = document.getElementById('congestionLevelChart').getContext('2d');
+            congestionLevelChart = new Chart(congestionCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Low', 'Medium', 'High'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: [
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(255, 205, 86, 0.7)',
+                            'rgba(255, 99, 132, 0.7)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        function setupFileUpload(junctionId) {
+            const input = document.getElementById(`junction${junctionId}Upload`);
+            const preview = document.getElementById(`junction${junctionId}Preview`);
+            
+            input.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        processJunction(junctionId, this.files[0]);
+                    }
+                    
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        }
+        
+        function processJunction(junctionId, imageFile) {
+            // Disable all uploads during processing
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`junction${i}Upload`).disabled = true;
+                document.querySelector(`#junction${i}Upload`).previousElementSibling.disabled = true;
+            }
+            
+            // Show processing state
+            currentActiveJunction = junctionId;
+            document.getElementById('currentJunction').textContent = `Processing Junction ${junctionId}`;
+            
+            const formData = new FormData();
+            formData.append('file', imageFile);
+            formData.append('junction_id', junctionId);
+            
+            axios.post('/analyze_junction', formData)
+                .then(response => {
+                    if (response.data.success) {
+                        const result = response.data.result;
+                        
+                        // Add to history
+                        analysisHistory.push({
+                            junction: junctionId,
+                            timestamp: new Date().toLocaleTimeString(),
+                            ...result
+                        });
+                        
+                        // Update UI
+                        showResults(junctionId, result);
+                        updateCharts();
+                        startSignalTimer(junctionId, result.signal_timings.green);
+                        
+                        // Enable next junction if available
+                        if (junctionId < 4) {
+                            setTimeout(() => {
+                                setupFileUpload(junctionId + 1);
+                                document.getElementById(`junction${junctionId + 1}Upload`).disabled = false;
+                                document.querySelector(`#junction${junctionId + 1}Upload`).previousElementSibling.disabled = false;
+                                document.getElementById(`junction${junctionId + 1}Preview`).src = "https://via.placeholder.com/400x300?text=Ready+for+Upload";
+                            }, result.signal_timings.green * 1000);
+                        }
+                    }
+                })
+                .catch(error => {
+                    alert(error.response?.data?.error || 'Error processing image');
+                    console.error(error);
+                    
+                    // Reset the image
+                    document.getElementById(`junction${junctionId}Preview`).src = "https://via.placeholder.com/400x300?text=Upload+Failed";
+                    
+                    // Re-enable upload buttons
+                    document.getElementById(`junction${junctionId}Upload`).disabled = false;
+                    document.querySelector(`#junction${junctionId}Upload`).previousElementSibling.disabled = false;
+                });
+        }
+        
+        function showResults(junctionId, result) {
+            const congestionLevel = result.congestion_level;
+            const congestionClass = result.congestion_level.toLowerCase();
+            const totalVehicles = result.total;
+            
+            document.getElementById('resultsContainer').innerHTML = `
+                <div class="text-start">
+                    <h5>Junction ${junctionId} Analysis</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <img src="/uploads/${result.processed_image}" class="img-fluid rounded mb-3">
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h6>Total Vehicles: ${totalVehicles}</h6>
+                                <div class="progress progress-thin">
+                                    <div class="progress-bar bg-${congestionClass}" style="width: ${result.congestion_pct}%"></div>
+                                </div>
+                                <small>Congestion: ${result.congestion_pct.toFixed(1)}%</small>
+                            </div>
+                            <div class="mb-3">
+                                <h6>Congestion Level:</h6>
+                                <span class="badge bg-${congestionClass}">${congestionLevel}</span>
+                            </div>
+                            <div>
+                                <h6>Vehicle Counts:</h6>
+                                ${Object.entries(result.vehicle_counts)
+                                    .filter(([_, count]) => count > 0)
+                                    .map(([type, count]) => `
+                                        <div class="d-flex justify-content-between">
+                                            <span>${type.charAt(0).toUpperCase() + type.slice(1)}:</span>
+                                            <strong>${count}</strong>
+                                        </div>
+                                    `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function updateCharts() {
+            // Get historical data for trend chart
+            axios.get('/get_historical_data')
+                .then(response => {
+                    const historicalData = response.data;
+                    
+                    // Update trend chart with all junction data
+                    const labels = [];
+                    const datasets = [];
+                    
+                    for (let i = 1; i <= 4; i++) {
+                        const junctionData = historicalData[i] || [];
+                        const dataPoints = [];
+                        const color = ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)', 'rgba(255, 206, 86, 1)', 'rgba(231, 115, 192, 1)'][i-1];
+
+                        if (i === 1 && junctionData.length > 0) {
+                            // Use timestamps from junction 1 for all labels
+                            junctionData.forEach(item => {
+                                const date = new Date(item.timestamp);
+                                labels.push(date.toLocaleTimeString());
+                            });
+                        }
+                        
+                        junctionData.forEach(item => {
+                            dataPoints.push(item.congestion_percentage);
+                        });
+                        
+                        datasets.push({
+                            label: `Junction ${i}`,
+                            data: dataPoints,
+                            borderColor: color,
+                            backgroundColor: color.replace('1)', '0.2)'),
+                            borderWidth: 2,
+                            tension: 0.1,
+                            fill: false
+                        });
+                    }
+                    
+                    congestionTrendChart.data.labels = labels;
+                    congestionTrendChart.data.datasets = datasets;
+                    congestionTrendChart.update();
+                    
+                    // Vehicle Distribution Chart
+                    let totalCars = 0, totalBuses = 0, totalTrucks = 0, totalMotorcycles = 0, totalBikes = 0, totalRickshaws = 0;
+                    analysisHistory.forEach(item => {
+                        totalCars += item.vehicle_counts.car || 0;
+                        totalBuses += item.vehicle_counts.bus || 0;
+                        totalTrucks += item.vehicle_counts.truck || 0;
+                        totalMotorcycles += item.vehicle_counts.motorcycle || 0;
+                        totalBikes += item.vehicle_counts.bike || 0;
+                        totalRickshaws += item.vehicle_counts.rickshaw || 0;
+                    });
+                    
+                    vehicleDistributionChart.data.datasets[0].data = [totalCars, totalBuses, totalTrucks, totalMotorcycles, totalBikes, totalRickshaws];
+                    vehicleDistributionChart.update();
+                    
+                    // Congestion Level Chart
+                    let low = 0, medium = 0, high = 0;
+                    analysisHistory.forEach(item => {
+                        if (item.congestion_level === 'Low') low++;
+                        else if (item.congestion_level === 'Medium') medium++;
+                        else if (item.congestion_level === 'High') high++;
+                    });
+                    
+                    congestionLevelChart.data.datasets[0].data = [low, medium, high];
+                    congestionLevelChart.update();
+                })
+                .catch(error => {
+                    console.error("Error fetching historical data:", error);
+                });
+        }
+        
+        function startSignalTimer(junctionId, duration) {
+            clearInterval(signalInterval);
+            let remainingTime = duration;
+            
+            // Reset all signal lights
+            ['red', 'yellow', 'green'].forEach(color => {
+                document.getElementById(`${color}Signal`).className = `signal-box bg-${color}`;
+            });
+            
+            // Activate green light
+            document.getElementById('greenSignal').className = 'signal-box bg-success signal-active';
+            
+            document.getElementById('remainingTime').textContent = remainingTime;
+            signalInterval = setInterval(() => {
+                remainingTime--;
+                document.getElementById('remainingTime').textContent = remainingTime;
+                
+                if (remainingTime <= 5 && remainingTime > 0) {
+                    // Switch to yellow with 5 seconds left
+                    document.getElementById('greenSignal').className = 'signal-box bg-success';
+                    document.getElementById('yellowSignal').className = 'signal-box bg-warning signal-active';
+                }
+                
+                if (remainingTime <= 0) {
+                    clearInterval(signalInterval);
+                    
+                    // Switch to red after timer ends
+                    document.getElementById('yellowSignal').className = 'signal-box bg-warning';
+                    document.getElementById('redSignal').className = 'signal-box bg-danger signal-active';
+                    document.getElementById('remainingTime').textContent = "0"; // Ensure 0 is displayed
+                }
+            }, 1000);
+            
+            currentActiveJunction = junctionId;
+        }
+        
+        function updateDashboard() {
+            if (analysisHistory.length > 0) {
+                const lastResult = analysisHistory[analysisHistory.length - 1];
+                 // Check if the current junction has finished processing.
+                if (currentActiveJunction !== null)
+                {
+                    document.getElementById('currentJunction').textContent = `Junction ${currentActiveJunction}`;
+                }
+                else{
+                     document.getElementById('currentJunction').textContent = `No active junction`;
+                }
+               
+                updateCharts();
+            }
+        }
+    </script>
+</body>
+</html>
+
