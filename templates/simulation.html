@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulation</title>
+</head>
+<body>
+    <h1>Simulation Result</h1>
+
+    {% if result %}
+        <p>Status: {{ result.status }}</p>
+        <p>Value: {{ result.value }}</p>
+    {% else %}
+        <p>No result to display.</p>
+    {% endif %}
+</body>
+</html>
